@@ -9,6 +9,6 @@
     "secret": "clientSecret",
     "scope": ["openid"],
     "nonce": true,
-    "callback": "/oauth/callback"
+    "callback": "/api/callback"
   }
 }

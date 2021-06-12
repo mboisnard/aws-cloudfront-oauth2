@@ -44,15 +44,24 @@ Resources:
             ResponseCode: 200
             ResponsePagePath: /index.html
         DefaultCacheBehavior:
+          TargetOriginId: webAppBucket
+#          LambdaFunctionAssociations:
+#            - EventType: viewer-request
+#              LambdaFunctionARN: !Ref LambdaEdgeVersion
+#              IncludeBody: true
           AllowedMethods:
             - GET
             - HEAD
+            - OPTIONS
+            - PUT
+            - POST
+            - PATCH
+            - DELETE
           Compress: true
-          TargetOriginId: webAppBucket
           ForwardedValues:
-            QueryString: false
+            QueryString: true
             Cookies:
-              Forward: none
+              Forward: all #just add SESSIONID / XSRF-TOKEN cookies
           ViewerProtocolPolicy: redirect-to-https
         PriceClass: PriceClass_100
 #### ####
@@ -71,67 +80,26 @@ Resources:
       AccessTokenValidity: 1 # eq 1 hour
       IdTokenValidity: 1 # eq 1 hour
       RefreshTokenValidity: 1 # eq 1 day
-      AllowedOAuthFlowsUserPoolClient: false
+      AllowedOAuthFlowsUserPoolClient: true
+      AllowedOAuthFlows:
+        - code
+      AllowedOAuthScopes:
+        - openid
+        - profile
+        - email
+      CallbackURLs:
+        - http://localhost:8080/api/callback
+        - !Sub 'https://${WebAppDistribution.DomainName}/api/callback'
+      LogoutURLs:
+        - http://localhost:8080/api/logout
+        - !Sub 'https://${WebAppDistribution.DomainName}/api/logout'
       SupportedIdentityProviders:
         - COGNITO
-
-  CognitoIdentityPool:
-    Type: AWS::Cognito::IdentityPool
-    Properties:
-      AllowUnauthenticatedIdentities: false
-      IdentityPoolName: cloudfront-cognito-identity-pool
-      CognitoIdentityProviders:
-        - ProviderName: !GetAtt CognitoUserPool.ProviderName
-          ClientId: !Ref CognitoUserPoolClient
-
-  CognitoIdentityPoolRoleAttachment:
-    Type: AWS::Cognito::IdentityPoolRoleAttachment
-    Properties:
-      IdentityPoolId: !Ref CognitoIdentityPool
-      Roles:
-        "authenticated": !GetAtt CognitoAuthenticatedRole.Arn
-        "unauthenticated": !GetAtt CognitoUnAuthenticatedRole.Arn
-
-  CognitoAuthenticatedRole:
-    Type: AWS::IAM::Role
-    Properties:
-      RoleName: cognito-auth-role
-      AssumeRolePolicyDocument:
-        Version: 2012-10-17
-        Statement:
-          - Effect: Allow
-            Principal:
-              Federated:
-                - cognito-identity.amazonaws.com
-            Action:
-              - sts:AssumeRoleWithWebIdentity
-            Condition: { "ForAnyValue:StringLike": { "cognito-identity.amazonaws.com:amr": "authenticated" },  "StringEquals": { "cognito-identity.amazonaws.com:aud": !Ref CognitoIdentityPool } }
-      Policies:
-        - PolicyDocument:
-            Version: 2012-10-17
-            Statement:
-              - Action:
-                  - mobileanalytics:PutEvents
-                  - cognito-sync:*
-                  - cognito-identity:*
-                Effect: Allow
-                Resource: '*'
-          PolicyName: cognito-auth-policy
-
-  CognitoUnAuthenticatedRole:
-    Type: AWS::IAM::Role
-    Properties:
-      RoleName: cognito-unauth-role
-      AssumeRolePolicyDocument:
-        Version: 2012-10-17
-        Statement:
-          - Effect: Allow
-            Principal:
-              Federated:
-                - cognito-identity.amazonaws.com
-            Action:
-              - sts:AssumeRoleWithWebIdentity
-            Condition: { "ForAnyValue:StringLike": { "cognito-identity.amazonaws.com:amr": "unauthenticated" },  "StringEquals": { "cognito-identity.amazonaws.com:aud": !Ref CognitoIdentityPool } }
+      ExplicitAuthFlows:
+        - ALLOW_CUSTOM_AUTH
+        - ALLOW_USER_SRP_AUTH
+        - ALLOW_REFRESH_TOKEN_AUTH
+      GenerateSecret: true
 #### ####
 
 #### API Gateway ####
@@ -198,3 +166,6 @@ Resources:
       AutoDeploy: true
       ApiId: !Ref APIGatewayHttpApi
 #### ####
+
+# https://cognito-idp.[region].amazonaws.com/[userPoolId]/.well-known/openid-configuration
+# iss: https://cognito-idp.[region].amazonaws.com/[userPoolId]

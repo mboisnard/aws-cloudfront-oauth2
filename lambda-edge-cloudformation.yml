@@ -1,0 +1,51 @@
+## !! Lambda@Edge has to be in us-east-1 region
+## https://stackoverflow.com/questions/61635935/why-lambdaedge-has-to-be-in-us-east-1-region
+
+Resources:
+
+  #### Lambda ####
+  LambdaEdgeExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: oauth2-lambda-edge-execution-role
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+                - edgelambda.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      Policies:
+        - PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Action:
+                  - logs:CreateLogGroup
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Effect: Allow
+                Resource: '*'
+          PolicyName: oauth2-lambda-edge-execution-policy
+
+  OAuth2LambdaEdgeFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: oauth2-lambda-edge
+      Handler: index.handler
+      Runtime: nodejs12.x
+      Role: !GetAtt LambdaEdgeExecutionRole.Arn
+      Code:
+        ZipFile: !Sub |
+          exports.handler = function(event, context) {
+            console.log('Upload lambdacode & update nodejs version to nodejs14.x');
+          };
+
+  LambdaLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub '/aws/lambda/${OAuth2LambdaEdgeFunction}'
+      RetentionInDays: 1
+#### ####
