@@ -1,0 +1,200 @@
+Resources:
+
+#### S3 Website + Cloudfront ####
+  WebAppS3Bucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      AccessControl: Private
+      BucketName: cloudfront-oauth2-web-app-s3
+
+  WebAppS3BucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref WebAppS3Bucket
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Action:
+              - s3:GetObject
+            Principal:
+              CanonicalUser: !GetAtt WebAppAccessIdentity.S3CanonicalUserId
+            Effect: Allow
+            Resource: !Sub '${WebAppS3Bucket.Arn}/*'
+
+  WebAppAccessIdentity:
+    Type: AWS::CloudFront::CloudFrontOriginAccessIdentity
+    Properties:
+      CloudFrontOriginAccessIdentityConfig:
+        Comment: web-app-cloudfront-access-identity
+
+  WebAppDistribution:
+    Type: AWS::CloudFront::Distribution
+    Properties:
+      DistributionConfig:
+        Origins:
+          - DomainName: !GetAtt WebAppS3Bucket.RegionalDomainName
+            Id: webAppBucket
+            S3OriginConfig:
+              OriginAccessIdentity: !Sub 'origin-access-identity/cloudfront/${WebAppAccessIdentity.Id}'
+        Enabled: true
+        DefaultRootObject: index.html
+        HttpVersion: http2
+        CustomErrorResponses:
+          - ErrorCode: 403
+            ResponseCode: 200
+            ResponsePagePath: /index.html
+        DefaultCacheBehavior:
+          AllowedMethods:
+            - GET
+            - HEAD
+          Compress: true
+          TargetOriginId: webAppBucket
+          ForwardedValues:
+            QueryString: false
+            Cookies:
+              Forward: none
+          ViewerProtocolPolicy: redirect-to-https
+        PriceClass: PriceClass_100
+#### ####
+
+#### Cognito ####
+  CognitoUserPool:
+    Type: AWS::Cognito::UserPool
+    Properties:
+      UserPoolName: cloudfront-cognito-user-pool
+
+  CognitoUserPoolClient:
+    Type: AWS::Cognito::UserPoolClient
+    Properties:
+      UserPoolId: !Ref CognitoUserPool
+      ClientName: cloudfront-cognito-web-app
+      AccessTokenValidity: 1 # eq 1 hour
+      IdTokenValidity: 1 # eq 1 hour
+      RefreshTokenValidity: 1 # eq 1 day
+      AllowedOAuthFlowsUserPoolClient: false
+      SupportedIdentityProviders:
+        - COGNITO
+
+  CognitoIdentityPool:
+    Type: AWS::Cognito::IdentityPool
+    Properties:
+      AllowUnauthenticatedIdentities: false
+      IdentityPoolName: cloudfront-cognito-identity-pool
+      CognitoIdentityProviders:
+        - ProviderName: !GetAtt CognitoUserPool.ProviderName
+          ClientId: !Ref CognitoUserPoolClient
+
+  CognitoIdentityPoolRoleAttachment:
+    Type: AWS::Cognito::IdentityPoolRoleAttachment
+    Properties:
+      IdentityPoolId: !Ref CognitoIdentityPool
+      Roles:
+        "authenticated": !GetAtt CognitoAuthenticatedRole.Arn
+        "unauthenticated": !GetAtt CognitoUnAuthenticatedRole.Arn
+
+  CognitoAuthenticatedRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: cognito-auth-role
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Federated:
+                - cognito-identity.amazonaws.com
+            Action:
+              - sts:AssumeRoleWithWebIdentity
+            Condition: { "ForAnyValue:StringLike": { "cognito-identity.amazonaws.com:amr": "authenticated" },  "StringEquals": { "cognito-identity.amazonaws.com:aud": !Ref CognitoIdentityPool } }
+      Policies:
+        - PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Action:
+                  - mobileanalytics:PutEvents
+                  - cognito-sync:*
+                  - cognito-identity:*
+                Effect: Allow
+                Resource: '*'
+          PolicyName: cognito-auth-policy
+
+  CognitoUnAuthenticatedRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: cognito-unauth-role
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Federated:
+                - cognito-identity.amazonaws.com
+            Action:
+              - sts:AssumeRoleWithWebIdentity
+            Condition: { "ForAnyValue:StringLike": { "cognito-identity.amazonaws.com:amr": "unauthenticated" },  "StringEquals": { "cognito-identity.amazonaws.com:aud": !Ref CognitoIdentityPool } }
+#### ####
+
+#### API Gateway ####
+  APIGatewayHttpApi:
+    Type: AWS::ApiGatewayV2::Api
+    Properties:
+      Name: oauth2-secured-api-gateway
+      Description: JWT secured API Gateway
+      ProtocolType: HTTP
+
+  APIGatewayAuthorizer:
+    Type: AWS::ApiGatewayV2::Authorizer
+    Properties:
+      ApiId: !Ref APIGatewayHttpApi
+      AuthorizerType: JWT
+      IdentitySource:
+        - "$request.header.Authorization"
+      JwtConfiguration:
+        Audience:
+          - !Ref CognitoUserPoolClient
+        Issuer: !Sub 'https://cognito-idp.${AWS::Region}.amazonaws.com/${CognitoUserPool}'
+      Name: JwtCognitoAuthorizer
+
+#  APIGatewayLambdaIntegration:
+#    Type: AWS::ApiGatewayV2::Integration
+#    Properties:
+#      ApiId: !Ref APIGatewayHttpApi
+#      IntegrationType: AWS_PROXY
+#      PayloadFormatVersion: 2.0
+#      IntegrationUri: !Sub 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${QuicksightCognitoFunction.Arn}/invocations'
+#      RequestParameters:
+#        'overwrite:path': '$request.path' # Remove any stage name from path
+#
+#  APIGatewayGetLambdaProxyRoute:
+#    Type: AWS::ApiGatewayV2::Route
+#    Properties:
+#      ApiId: !Ref APIGatewayHttpApi
+#      RouteKey: 'GET /{proxy+}'
+#      AuthorizationType: JWT
+#      AuthorizerId: !Ref APIGatewayAuthorizer
+#      Target: !Sub 'integrations/${APIGatewayLambdaIntegration}'
+#
+#  APIGatewayOptionsLambdaProxyRoute:
+#    Type: AWS::ApiGatewayV2::Route
+#    Properties:
+#      ApiId: !Ref APIGatewayHttpApi
+#      RouteKey: 'OPTIONS /{proxy+}'
+#      Target: !Sub 'integrations/${APIGatewayLambdaIntegration}'
+
+  APIGatewayLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: api-gateway-log-grp
+      RetentionInDays: 1
+
+  APIGatewayDevStage:
+    Type: AWS::ApiGatewayV2::Stage
+    Properties:
+      StageName: Dev
+      Description: Dev Stage
+      AccessLogSettings:
+        DestinationArn: !GetAtt APIGatewayLogGroup.Arn
+        Format: '{ "requestId":"$context.requestId", "ip": "$context.identity.sourceIp", "requestTime":"$context.requestTime", "httpMethod":"$context.httpMethod","routeKey":"$context.routeKey", "status":"$context.status","protocol":"$context.protocol", "responseLength":"$context.responseLength", "integrationError":"$context.integrationErrorMessage" }'
+      AutoDeploy: true
+      ApiId: !Ref APIGatewayHttpApi
+#### ####

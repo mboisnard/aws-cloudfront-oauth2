@@ -1,6 +1,7 @@
-const grant = require('grant').aws({
-  config: {/*configuration - see below*/}, session: {secret: 'grant'}
-})
+import grant from 'grant'
+import config from './config.json'
+
+grant.aws(config)
 
 exports.handler = async event => {
 
