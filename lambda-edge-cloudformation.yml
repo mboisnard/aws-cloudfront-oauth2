@@ -42,10 +42,4 @@ Resources:
           exports.handler = function(event, context) {
             console.log('Upload lambdacode & update nodejs version to nodejs14.x');
           };
-
-  LambdaLogGroup:
-    Type: AWS::Logs::LogGroup
-    Properties:
-      LogGroupName: !Sub '/aws/lambda/${OAuth2LambdaEdgeFunction}'
-      RetentionInDays: 1
 #### ####
