@@ -7,6 +7,7 @@ import {getCurrentInvoke} from '@vendia/serverless-express';
 import {Issuer} from 'openid-client';
 
 import config from './config.json';
+import {AWSDynamoDBStore} from './awsDynamoDBStore';
 
 const app = express();
 const router = express.Router();
@@ -33,6 +34,8 @@ const sessionHandler = async (req, res, next) => {
     console.log("EVENT " + JSON.stringify(event));
     console.log("REQ Headers" + JSON.stringify(req.headers));
     console.log("REQ Url" + JSON.stringify(req.url));
+    console.log("REQ session " + JSON.stringify(req.session));
+    console.log("REQ sessionId " + JSON.stringify(req.sessionID));
 
     const cookies = getCookies(req);
 
@@ -40,6 +43,8 @@ const sessionHandler = async (req, res, next) => {
 
     if (!cookies[config.session.cookie.name]) {
         const url = (await client).authorizationUrl();
+
+        req.session.referer = req.headers['x-spa-referer'] || req.headers['referrer'] || req.headers['referer'];
 
         return res.set({'WWW-Authenticate': `${config.unAuthorized.redirect.scheme} realm=${url}`})
             .status(config.unAuthorized.redirect.statusCode)
@@ -57,6 +62,7 @@ router.use(bodyParser.json());
 router.use(session({
     name: config.session.cookie.name,
     secret: config.session.cookie.secret,
+    store: new AWSDynamoDBStore({aws: {region: 'us-east-1'}}),
     cookie: {
         path: config.session.cookie.path,
         httpOnly: config.session.cookie.httpOnly,

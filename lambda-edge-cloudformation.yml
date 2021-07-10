@@ -28,6 +28,14 @@ Resources:
                   - logs:PutLogEvents
                 Effect: Allow
                 Resource: '*'
+              - Action:
+                  - dynamodb:CreateTable
+                  - dynamodb:UpdateItem
+                  - dynamodb:PutItem
+                  - dynamodb:GetItem
+                  - dynamodb:DeleteItem
+                Effect: Allow
+                Resource: arn:aws:dynamodb:us-east-1:734278191929:table/sessions
           PolicyName: oauth2-lambda-edge-execution-policy
 
   OAuth2LambdaEdgeFunction:
