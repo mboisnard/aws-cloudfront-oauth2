@@ -3,9 +3,9 @@ import express from 'express';
 import session from 'express-session';
 import bodyParser from 'body-parser';
 //import csrf from 'csurf';
-import {getCurrentInvoke} from '@vendia/serverless-express';
-import {Issuer} from 'openid-client';
+import {createProxyMiddleware} from "http-proxy-middleware";
 
+import {Issuer} from 'openid-client';
 import config from './config.json';
 import {AWSDynamoDBStore} from './awsDynamoDBStore';
 
@@ -14,7 +14,9 @@ const router = express.Router();
 
 const getCookies = (req) => {
 
-    const rawCookies = req.headers.cookie?.slice(0, -1).split('; ');
+    console.log("GET COOKIES");
+
+    const rawCookies = req.headers.cookie?.slice(0, -1)?.split('; ');
 
     if (!rawCookies)
         return {};
@@ -40,7 +42,7 @@ const sessionHandler = async (req, res, next) => {
         req.session.referer = req.headers['x-spa-referer'] || req.headers['referrer'] || req.headers['referer'];
 
         return res.set({'WWW-Authenticate': `${config.unAuthorized.redirect.scheme} realm=${url}`})
-            .status(config.unAuthorized.redirect.statusCode)
+            .status(401)
             .json({});
     }
 
@@ -75,26 +77,56 @@ const client = Issuer.discover(config.identityProvider.issuer.url)
         response_types: [config.identityProvider.app.responseType]
     }));
 
-router.get('/api/callback', async (req, res) => {
-    const {event} = getCurrentInvoke();
-
-    console.log("EVENT CALLBACK " + JSON.stringify(event));
+router.get('/oauth2/callback', async (req, res) => {
 
     const lclient = await client;
     const params = lclient.callbackParams(req);
 
     console.log("PARAMS " + JSON.stringify(params));
 
+    if (!params.code) {
+        return res.status(500)
+            .json({message: 'Authorization code not found for callback request'});
+    }
+
     const tokenSet = await lclient.callback(config.identityProvider.app.redirectUri, params);
 
     console.log("TOKENSET " + JSON.stringify(tokenSet));
 });
 
+router.use('/api', createProxyMiddleware({
+    target: config.backend.proxy.url,
+    changeOrigin: true,
+    xfwd: false,
+    headers: {
+        'Authorization': 'Bearer toto'
+    },
+
+    onError: (err, req, res, target) => {
+        console.log(err);
+        res.writeHead(500, {
+            'Content-Type': 'text/plain',
+        });
+        res.end('Something went wrong. And we are reporting a custom error message.');
+    },
+
+    onProxyReq: (proxyReq, req, res) => {
+        console.log("toto proxy req");
+        proxyReq.removeHeader('x-forwarded-proto');
+        proxyReq.removeHeader('connection');
+        console.log("proxy headers " + JSON.stringify(proxyReq.getHeaders()));
+        console.log("proxy path " + proxyReq.path);
+    },
+
+    onProxyRes: (proxyRes, req, res) => {
+        console.log("toto proxy reqs");
+        delete proxyRes.headers['x-forwarded-proto'];
+        delete proxyRes.headers['connection'];
+        console.log("proxy headers " + JSON.stringify(proxyRes.headers));
+        console.log("proxy url " + proxyRes.url);
+    }
+}));
+
 app.use('/', router);
 
 export default app;
-
-
-// callback / logout
-// proxy
-// save in store

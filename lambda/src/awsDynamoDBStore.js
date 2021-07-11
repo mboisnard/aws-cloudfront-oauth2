@@ -58,6 +58,7 @@ export class AWSDynamoDBStore extends Store {
 
     set(sessionId, session, callback) {
         console.log("set session " + JSON.stringify(session));
+        console.log("set session id " + JSON.stringify(sessionId));
 
         const command = new PutItemCommand({
             Item: {
