@@ -1,5 +1,11 @@
 import { Store } from 'express-session';
-import {DeleteItemCommand, DynamoDBClient, GetItemCommand, PutItemCommand} from "@aws-sdk/client-dynamodb";
+import {
+    DeleteItemCommand,
+    DynamoDBClient,
+    GetItemCommand,
+    PutItemCommand,
+    UpdateItemCommand
+} from "@aws-sdk/client-dynamodb";
 
 export class AWSDynamoDBStore extends Store {
 
@@ -71,7 +77,7 @@ export class AWSDynamoDBStore extends Store {
         const command = new DeleteItemCommand({
             TableName: this.table,
             Key: {
-                [this.hashKey]: this.getFormattedSessionId(sessionId)
+                [this.hashKey]: { S: this.getFormattedSessionId(sessionId) }
             }
         });
         this.dynamoClient.send(command, callback);
@@ -79,7 +85,19 @@ export class AWSDynamoDBStore extends Store {
 
     touch(sessionId, session, callback) {
         console.log("touch session id " + JSON.stringify(sessionId));
-        return callback(null);
+
+        const command = new UpdateItemCommand({
+            TableName: this.table,
+            Key: {
+                [this.hashKey]: { S: this.getFormattedSessionId(sessionId) }
+            },
+            UpdateExpression: 'set expires = :e',
+            ExpressionAttributeValues: {
+                ':e': { N: `${this.getExpiresValue(session)}` }
+            },
+            ReturnValues: 'UPDATED_NEW'
+        });
+        this.dynamoClient.send(command, callback);
     };
 }
 
