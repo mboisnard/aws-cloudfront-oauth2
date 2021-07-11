@@ -30,16 +30,9 @@ const getCookies = (req) => {
 
 const sessionHandler = async (req, res, next) => {
 
-    const {event} = getCurrentInvoke();
-    console.log("EVENT " + JSON.stringify(event));
-    console.log("REQ Headers" + JSON.stringify(req.headers));
-    console.log("REQ Url" + JSON.stringify(req.url));
-    console.log("REQ session " + JSON.stringify(req.session));
-    console.log("REQ sessionId " + JSON.stringify(req.sessionID));
-
     const cookies = getCookies(req);
 
-    console.log("SESSIONID " + JSON.stringify(cookies));
+    console.log("COOKIES " + JSON.stringify(cookies));
 
     if (!cookies[config.session.cookie.name]) {
         const url = (await client).authorizationUrl();
