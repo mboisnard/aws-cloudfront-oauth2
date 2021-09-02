@@ -1,14 +1,35 @@
 {
-  "defaults": {
-    "origin": "https://cloudfront-url",
-    "transport": "session",
-    "state": true
+  "session": {
+    "cookie": {
+      "name": "SESSIONID",
+      "secret": "thisisasecret",
+      "path": "/",
+      "httpOnly": true,
+      "secure": true,
+      "maxAge": null,
+      "sameSite": "lax"
+    },
+    "ttl": 900
   },
-  "cognito": {
-    "key": "clientId",
-    "secret": "clientSecret",
-    "scope": ["openid"],
-    "nonce": true,
-    "callback": "/api/callback"
+  "identityProvider": {
+    "issuer": {
+      "url": "https://cognito-idp.*********.amazonaws.com/*************/.well-known/openid-configuration"
+    },
+    "app": {
+      "clientId": "*********",
+      "clientSecret": "************",
+      "redirectUri": "https://************.cloudfront.net/oauth2/callback",
+      "responseType": "code"
+    }
+  },
+  "unAuthorized": {
+    "redirect": {
+      "scheme": "CUSTOM-SSO"
+    }
+  },
+  "backend": {
+    "proxy": {
+      "url": "https://github.com"
+    }
   }
 }
