@@ -23,4 +23,4 @@ export async function getOpenIdClientFrom(config: OpenIdConfiguration) {
        redirect_uris: [config.redirectUrl],
        response_types: [config.responseType]
     });
-};
+}

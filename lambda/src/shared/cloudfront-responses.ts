@@ -1,7 +1,7 @@
-import { CloudFrontHeaders, CloudFrontResultResponse } from "aws-lambda";
-import { OPENID_CONFIGURATION } from "../shared/settings";
+import { CloudFrontHeaders, CloudFrontResultResponse } from 'aws-lambda';
+import { OPENID_CONFIGURATION } from './settings';
 
-// Generate Unauthorize response in viewer request event or origin request event
+// Generate Unauthorized response in viewer request event or origin request event
 export function createUnauthorizedResponse(url: string, headers: CloudFrontHeaders): CloudFrontResultResponse {
 
     return {
@@ -15,4 +15,4 @@ export function createUnauthorizedResponse(url: string, headers: CloudFrontHeade
             ...headers
         }
     };
-};
+}
