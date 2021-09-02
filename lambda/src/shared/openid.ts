@@ -10,7 +10,7 @@ export type OpenIdConfiguration = {
     },
     redirectUrl: string,
     responseType: ResponseType,
-    unauthorizeScheme: string
+    unauthorizedScheme: string
 };
 
 export async function getOpenIdClientFrom(config: OpenIdConfiguration) {

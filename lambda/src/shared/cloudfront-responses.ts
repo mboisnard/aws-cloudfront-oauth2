@@ -10,7 +10,7 @@ export function createUnauthorizedResponse(url: string, headers: CloudFrontHeade
         headers: {
             'WWW-Authenticate': [{
                 key: 'WWW-Authenticate',
-                value: `${OPENID_CONFIGURATION.unauthorizeScheme} realm=${url}`
+                value: `${OPENID_CONFIGURATION.unauthorizedScheme} realm=${url}`
             }],
             ...headers
         }

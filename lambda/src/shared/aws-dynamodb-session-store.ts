@@ -1,6 +1,6 @@
 import {Session, SessionStore} from './session';
 
-export class DynamoDBSessionStore implements SessionStore {
+export class AWSDynamoDBSessionStore implements SessionStore {
 
   async destroy(sessionId: string): Promise<void> {
     return Promise.reject();

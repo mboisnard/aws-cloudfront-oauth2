@@ -1,7 +1,7 @@
 import {OpenIdConfiguration} from './openid';
 import {SessionConfiguration} from './session';
 import {generators} from 'openid-client';
-import {DynamoDBSessionStore} from './dynamodb-session-store';
+import {AWSDynamoDBSessionStore} from './aws-dynamodb-session-store';
 
 export const SESSION_CONFIGURATION: SessionConfiguration = {
   cookie: {
@@ -14,7 +14,7 @@ export const SESSION_CONFIGURATION: SessionConfiguration = {
   },
   secret: 'thisisasecret',
   genid: (_req) => generators.random(),
-  store: new DynamoDBSessionStore()
+  store: new AWSDynamoDBSessionStore()
 };
 
 export const OPENID_CONFIGURATION: OpenIdConfiguration = {
@@ -27,5 +27,5 @@ export const OPENID_CONFIGURATION: OpenIdConfiguration = {
   },
   redirectUrl: 'https://cloudfront.url/oauth/callback',
   responseType: 'code',
-  unauthorizeScheme: 'CUSTOMSSO'
+  unauthorizedScheme: 'CUSTOMSSO'
 };
