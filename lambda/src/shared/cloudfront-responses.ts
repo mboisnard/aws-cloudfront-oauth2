@@ -2,7 +2,7 @@ import {CloudFrontHeaders, CloudFrontResultResponse} from 'aws-lambda';
 import {OPENID_CONFIGURATION} from './settings';
 
 // Generate Unauthorized response in viewer request event or origin request event
-export function createUnauthorizedResponse(url: string, headers: CloudFrontHeaders): CloudFrontResultResponse {
+export function createUnauthorizedResponse(url: string): CloudFrontResultResponse {
 
   return {
     status: '401',
@@ -11,20 +11,16 @@ export function createUnauthorizedResponse(url: string, headers: CloudFrontHeade
       'WWW-Authenticate': [{
         key: 'WWW-Authenticate',
         value: `${OPENID_CONFIGURATION.unauthorizedScheme} realm=${url}`
-      }],
-      ...headers
+      }]
     }
   };
 }
 
-export function createLoginPageResponse(url: string, headers: CloudFrontHeaders): CloudFrontResultResponse {
+export function createLoginPageResponse(url: string): CloudFrontResultResponse {
 
   return {
     status: '307',
     statusDescription: 'Temporary Redirect',
-    headers: {
-      ...headers
-    },
-    body: 'coucou'
+    body: '<html><body><h1>coucou</h1></body></html>'
   };
 }

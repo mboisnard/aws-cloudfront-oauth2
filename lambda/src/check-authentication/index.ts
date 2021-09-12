@@ -9,18 +9,21 @@ import {Client} from 'openid-client';
 export const handler: CloudFrontRequestHandler = async (event) => {
 
   const request = event.Records[0].cf.request;
+  console.log('request : ' + JSON.stringify(request));
 
   const headers = request.headers;
+  console.log('headers : ' + JSON.stringify(headers));
   const cookies = extractCookiesFrom(headers);
+  console.log('cookies : ' + JSON.stringify(cookies));
   const openIdClient = await getOpenIdClientFrom(OPENID_CONFIGURATION);
+  console.log('openidclient initialized');
 
   const session = await getSessionFrom(cookies, SESSION_CONFIGURATION);
-  console.log('request : ' + JSON.stringify(request));
-  console.log('cookies : ' + JSON.stringify(cookies));
 
   if (!session) {
-    const createdSession = await createSession(request);
-    return unauthorizedResponse(createdSession, openIdClient, headers);
+    console.log('session not exists');
+    //const createdSession = await createSession(request);
+    return unauthorizedResponse(null, openIdClient, headers);
   }
 
   if (session.isExpired()) {
@@ -50,15 +53,15 @@ async function createSession(request: CloudFrontRequest): Promise<Session> {
   return newSession.save();
 }
 
-function unauthorizedResponse(session: Session, openIdClient: Client, headers: CloudFrontHeaders) {
+function unauthorizedResponse(session: Session | null, openIdClient: Client, headers: CloudFrontHeaders) {
   const authorizationUrl = openIdClient.authorizationUrl();
   console.log('authorization url : ' + authorizationUrl);
 
   if (isRequestFromSPA(headers)) {
-    return createUnauthorizedResponse(authorizationUrl, headers);
+    return createUnauthorizedResponse(authorizationUrl);
   }
 
-  return createLoginPageResponse(authorizationUrl, headers);
+  return createLoginPageResponse(authorizationUrl);
 }
 
 

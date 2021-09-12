@@ -29,20 +29,23 @@ export function extractRefererFrom(headers: CloudFrontHeaders) {
 
 function extractSimpleValueHeaderFrom(headers: CloudFrontHeaders, searchedHeader: string) {
 
-  if (!headers[searchedHeader] || headers[searchedHeader].length === 0) {
+  const normalizedHeaderName = searchedHeader.toLowerCase();
+  if (!headers[normalizedHeaderName] || headers[normalizedHeaderName].length === 0) {
     return undefined;
   }
 
-  return headers[searchedHeader][0].value;
+  return headers[normalizedHeaderName][0].value;
 }
 
 function extractMultiValuesHeaderFrom(headers: CloudFrontHeaders, searchedHeader: string) {
 
-  if (!headers[searchedHeader]) {
+  const normalizedHeaderName = searchedHeader.toLowerCase();
+
+  if (!headers[normalizedHeaderName]) {
     return {};
   }
 
-  const multiValuesHeader = headers[searchedHeader].reduce(
+  const multiValuesHeader = headers[normalizedHeaderName].reduce(
     (reduced, header) => Object.assign(reduced, parse(header.value)),
     {} as MultiValuesHeader
   );
