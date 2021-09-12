@@ -1,5 +1,5 @@
-import { CloudFrontHeaders, CloudFrontResultResponse } from 'aws-lambda';
-import { OPENID_CONFIGURATION } from './settings';
+import {CloudFrontHeaders, CloudFrontResultResponse} from 'aws-lambda';
+import {OPENID_CONFIGURATION} from './settings';
 
 // Generate Unauthorized response in viewer request event or origin request event
 export function createUnauthorizedResponse(url: string, headers: CloudFrontHeaders): CloudFrontResultResponse {
@@ -14,5 +14,17 @@ export function createUnauthorizedResponse(url: string, headers: CloudFrontHeade
       }],
       ...headers
     }
+  };
+}
+
+export function createLoginPageResponse(url: string, headers: CloudFrontHeaders): CloudFrontResultResponse {
+
+  return {
+    status: '307',
+    statusDescription: 'Temporary Redirect',
+    headers: {
+      ...headers
+    },
+    body: 'coucou'
   };
 }

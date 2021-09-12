@@ -5,7 +5,7 @@ export type AWSDynamoDBConfiguration = {
   aws: {
     region: string
   },
-  db: {
+  db?: {
     prefix?: string,
     hashKey?: string,
     table?: string,
@@ -28,13 +28,13 @@ export class AWSDynamoDBSessionStore implements SessionStore {
   private readonly dynamoClient: DynamoDB;
 
   constructor(config: AWSDynamoDBConfiguration) {
-    this.prefix = config.db.prefix || 'sess';
-    this.hashKey = config.db.hashKey || 'id';
-    this.table = config.db.table || 'sessions';
-    this.createTableIfNotExist = config.db.createTableIfNotExist || false;
-    this.readCapacityUnits = config.db.readCapacityUnits || 5;
-    this.writeCapacityUnits = config.db.writeCapacityUnits || 5;
-    this.ttl = config.db.ttl || 900; // ttl in seconds
+    this.prefix = config.db?.prefix || 'sess';
+    this.hashKey = config.db?.hashKey || 'id';
+    this.table = config.db?.table || 'sessions';
+    this.createTableIfNotExist = config.db?.createTableIfNotExist || false;
+    this.readCapacityUnits = config.db?.readCapacityUnits || 5;
+    this.writeCapacityUnits = config.db?.writeCapacityUnits || 5;
+    this.ttl = config.db?.ttl || 900; // ttl in seconds
 
     this.dynamoClient = new DynamoDB({region: config.aws.region});
 
@@ -54,11 +54,11 @@ export class AWSDynamoDBSessionStore implements SessionStore {
     return Promise.reject();
   }
 
-  async set(sessionId: string, session: Session): Promise<void> {
+  async set(sessionId: string, session: Session): Promise<Session> {
     return Promise.reject();
   }
 
-  async touch(sessionId: string, session: Session): Promise<void> {
+  async touch(sessionId: string, session: Session): Promise<Session> {
     return Promise.reject();
   }
 }

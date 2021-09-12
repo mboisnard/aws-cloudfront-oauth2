@@ -13,8 +13,8 @@ export const SESSION_CONFIGURATION: SessionConfiguration = {
     sameSite: 'Lax'
   },
   secret: 'thisisasecret',
-  genid: (_req) => generators.random(),
-  store: new AWSDynamoDBSessionStore({aws: {region: 'eu-west-3'}, db: {}})
+  genid: _req => generators.random(),
+  store: new AWSDynamoDBSessionStore({aws: {region: 'eu-west-3'}})
 };
 
 export const OPENID_CONFIGURATION: OpenIdConfiguration = {
