@@ -1,10 +1,11 @@
 import {CloudFrontHeaders, CloudFrontRequest, CloudFrontRequestHandler} from 'aws-lambda';
-import {extractCookiesFrom, isRequestFromSPA} from '../shared/headers';
+import {isRequestFromSPA} from '../shared/headers';
 import {getSessionFrom, Session} from '../shared/session';
 import {getOpenIdClientFrom} from '../shared/openid';
 import {createLoginPageResponse, createUnauthorizedResponse} from '../shared/cloudfront-responses';
 import {OPENID_CONFIGURATION, SESSION_CONFIGURATION} from '../shared/settings';
 import {Client} from 'openid-client';
+import {extractCookiesFrom} from '../shared/cookies';
 
 export const handler: CloudFrontRequestHandler = async (event) => {
 
@@ -22,8 +23,8 @@ export const handler: CloudFrontRequestHandler = async (event) => {
 
   if (!session) {
     console.log('session not exists');
-    //const createdSession = await createSession(request);
-    return unauthorizedResponse(null, openIdClient, headers);
+    const createdSession = await createSession(request);
+    return unauthorizedResponse(createdSession, openIdClient, headers);
   }
 
   if (session.isExpired()) {
@@ -45,6 +46,7 @@ export const handler: CloudFrontRequestHandler = async (event) => {
 
   // Return the request unaltered to allow access to the resource
   // TODO Add Authorization Header : Bearer + idToken
+  //request.headers['authorization'] = `Bearer ${session.idToken}`;
   return request;
 };
 

@@ -1,5 +1,6 @@
 import {CloudFrontRequest} from 'aws-lambda';
-import {Cookies, extractRefererFrom} from './headers';
+import {Cookies, getSessionIdFrom} from './cookies';
+import {extractRefererFrom} from './headers';
 
 export type SessionConfiguration = {
   cookie: {
@@ -46,7 +47,7 @@ export class Session {
   }
 
   update(): Promise<Session> {
-    return this.config.store.touch(this.id, this);
+    return this.config.store.set(this.id, this);
   }
 
   delete(): Promise<void> {
@@ -57,7 +58,7 @@ export class Session {
 
 export interface SessionStore {
 
-  get(sessionId: string): Promise<Session>;
+  get(sessionId: string): Promise<Session | undefined>;
 
   set(sessionId: string, session: Session): Promise<Session>;
 
@@ -66,8 +67,10 @@ export interface SessionStore {
   touch(sessionId: string, session: Session): Promise<Session>;
 }
 
-export async function getSessionFrom(cookies: Cookies, config: SessionConfiguration): Promise<Session> {
+export async function getSessionFrom(cookies: Cookies, config: SessionConfiguration) {
 
-  return Promise.reject(`No session found for cookie ${config.cookie.name}, value: ${cookies[config.cookie.name]}`);
-  //return cookies[config.cookie.name];
+  const sessionId = await getSessionIdFrom(cookies);
+
+  console.log("before session read");
+  return config.store.get(sessionId);
 }

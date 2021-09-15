@@ -170,4 +170,8 @@ Resources:
 # https://cognito-idp.[region].amazonaws.com/[userPoolId]/.well-known/openid-configuration
 # iss: https://cognito-idp.[region].amazonaws.com/[userPoolId]
 
+# https://cognito-idp.eu-west-3.amazonaws.com/eu-west-3_8nA3LccsB
+# eu-west-3
+# eu-west-3_8nA3LccsB
+
 # grant / simple-oauth2
